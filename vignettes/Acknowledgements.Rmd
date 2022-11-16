@@ -1,0 +1,28 @@
+---
+title: "Acknowledgements"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Acknowledgements}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(SpatialAssessmentModelingWorkshop)
+```
+
+### Elizabeth Holmes (NOAA-NWFSC)
+For help troubleshooting pkgdown, github and a highly worthwhile 2021 NOAA RWorkflow workshop.
+
+### Bai Li, Christine Stawitz, Matthew Supernaw (NOAA-OST Modeling Team)
+For developing NOAA branding & color palettes
+
+### Ian Taylor, Kathryn Doering (NOAA-NWFSC r4ss team)
+For assistance/troubleshooting with r4ss
