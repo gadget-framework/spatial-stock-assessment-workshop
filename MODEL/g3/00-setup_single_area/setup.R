@@ -1,10 +1,12 @@
 ## -----------------------------------------------------------------------------
 ##
-## Runner to build a Gadget3 model for cod
-##
-## Trying to replicate Taylor et als model (2007)
+## Runner to build a single area YFT model
 ##
 ## -----------------------------------------------------------------------------
+
+## See https://github.com/aaronmberger-nwfsc/Spatial-Assessment-Modeling-Workshop
+## for information about the project, and vignettes for information regarding the 
+## operating model 
 
 library(mfdb)
 library(gadget3)
@@ -22,10 +24,11 @@ vers <- 'models/TEST'
 ## OPTIONS 
 ## -----------------------------------------------------------------------------
 
-## Whether or not to call the setup-data scripts
+## If FALSE, all data files will be read from "../data"
+## If TRUE, the mfdb will be queried and data files written to "../data"
 read_data <- FALSE
 
-## Whether or not to run iterative reweighting
+## Whether or not to run iterative re-weighting
 run_iterative <- FALSE
 run_retro <- FALSE
 bootstrap <- FALSE
@@ -34,38 +37,41 @@ bootstrap <- FALSE
 ## PARAMETERS 
 ## -----------------------------------------------------------------------------
 
+## This setup script uses the real years as opposed to pseudoyears
 year_range <- 1952:2015
 species_name <- 'yft' 
 
 ## -----------------------------------------------------------------------------
 
+## Leave as '' for the single area model
 data_source_suffix <- ''
 
 defaults <- list(area = mfdb_group('1' = 1),
                  timestep = mfdb_timestep_quarterly,
                  year = year_range,
                  species = 'YFT',
-                 sampling_type = 'sim_4') ## Sim 4 is the baseline
+                 sampling_type = 'sim_4') ## sim_4 is the baseline
 
 # Map area names to integer area numbers (in this case only "1" ==> 1, but could be anything)
-areas <- structure(
-  seq_along(defaults$area),
-  names = names(defaults$area))
+areas <- structure(seq_along(defaults$area), names = names(defaults$area))
 
 # Timekeeping for the model, i.e. how long we run for
-time_actions <- list(
-  g3a_time(start_year = min(defaults$year), 
-           end_year = max(defaults$year),
-           defaults$timestep),
-  list())
+time_actions <- list(g3a_time(start_year = min(defaults$year), 
+                              end_year = max(defaults$year),
+                              defaults$timestep),
+                     list())
+
+fs::dir_create(file.path(base_dir, 'QQ', c('jkjkj', 'popop')))
 
 ## Data and model folders
-fs::dir_create(file.path(base_dir, c('models', vers)))
+fs::dir_create(file.path(base_dir, vers, 'OPT', 'figs'))
+fs::dir_create(file.path(base_dir, vers, 'WGTS', 'figs'))
 fs::dir_create(file.path('MODEL/data'))
 
 ## ------------------------------------------------------------------------------------
 
-source(file.path(base_dir, '00-setup_single_area', 'setup-model.R'))  # Generates mat_stock_actions / imm_stock_actions
+# Sets up the stock objects and generates the stock actions
+source(file.path(base_dir, '00-setup_single_area', 'setup-model.R'))  
 
 ## Load data objects ----------------------------------------------------------
 if(read_data){
@@ -83,12 +89,12 @@ if(read_data){
 
 ## Configure model actions ------------------------------------------------------------
 
-
 source(file.path(base_dir, '00-setup_single_area', 'setup-fleets.R'))  # Generates fleet_actions
-source(file.path(base_dir, '00-setup_single_area', 'setup-likelihood.R'))  # Generates ling_likelihood_actions
+source(file.path(base_dir, '00-setup_single_area', 'setup-likelihood.R'))  # Generates likelihood_actions
 
 ##### Compile the r- and tmb-based models ######################################
 
+## Collate the stock actions
 stock_actions <- c(initial_conditions_imm,
                    natural_mortality_imm,
                    ageing_imm,
@@ -102,7 +108,7 @@ stock_actions <- c(initial_conditions_imm,
                    #spawning,
                    list())
 
-## Collate actions
+## Collate model actions
 actions <- c(
   stock_actions,
   survey_actions,
@@ -111,6 +117,7 @@ actions <- c(
   time_actions
 )
 
+## It is possible to add reporting to the model, e.g.
 #actions <- c(actions, list(
 #  g3a_report_history(actions, '^yft_(imm|mat)__(num|wgt|igfs|lln|bmt|gil|foreign|suit_igfs|renewalnum|renewalwgt)$')))
 
@@ -155,7 +162,8 @@ tmb_param <-
   g3_init_guess('init.sd', 1, 1, 1, 0)
 
 ## Add age-varying natural mortality
-## Take the average per 4 pseudoyears for each year
+## The operating model has natural mortality rates that vary per pseudoyear (i.e. per step)
+## We therefore use the mean value for each calender year
 
 m_by_age <- params_age %>% 
   mutate(age = floor(age_in_years)) %>% 
@@ -165,7 +173,6 @@ m_by_age <- params_age %>%
 
 tmb_param[grepl('\\imm.M.[0-9]', tmb_param$switch), 'value'] <- m_by_age[1:4]
 tmb_param[grepl('\\mat.M.[0-9]', tmb_param$switch), 'value'] <- m_by_age[2:8]  
-
 
 ## --------------------------------------------------------------------------
 
@@ -179,50 +186,47 @@ print(names(attributes(result)))
 
 ## Write out parameters and both models
 save(tmb_param, file = file.path(base_dir, vers, 'tmb_param.Rdata'))
-save(model, file = file.path(base_dir, vers, 'r_model.Rdata'))
 save(tmb_model, file = file.path(base_dir, vers, 'tmb_model.Rdata'))
 
 ## -----------------------------------------------------------------------------
 
 if (!run_iterative){
   
-  obj_fun <- gadget3::g3_tmb_adfun(tmb_model, tmb_param)
-  
-  ## Run optim
+  ## Run optimisation without iterative re-weighting
   params_opt <- g3_optim(tmb_model, 
                          tmb_param,
-                         control = list(reltol = 1e-10))
+                         use_parscale = TRUE,
+                         control = list(reltol = 1e-10,
+                                        maxit = 1000),
+                         print_status = TRUE)
   
   ## Gather fit
   fit <- g3_fit(tmb_model, params_opt)
-  gadget_plots(fit, file.path(base_dir, vers, 'figs'), file_type = 'html')
+  
+  ## Write to file
+  write.g3.param(params_opt, file.path(base_dir, vers, 'OPT'), 'params.final.optim')
+  save(params_opt, file = file.path(base_dir, vers, 'OPT', 'params_opt.Rdata'))
+  save(fit, file = file.path(base_dir, vers, 'OPT', 'fit.Rdata'))
+  gadget_plots(fit, file.path(base_dir, vers, 'OPT/figs'), file_type = 'html')
   
   
 }else{
   
   ## Run iterative re-weighting
-  params.out <- g3_iterative(file.path(base_dir, vers),
+  params_out <- g3_iterative(file.path(base_dir, vers),
                              wgts = 'WGTS',
-                             model,
                              tmb_model,
                              tmb_param,
-                             grouping = list(igfs_si = c('log_si_igfs_si1',
-                                                         'log_si_igfs_si2',
-                                                         'log_si_igfs_si3'),
-                                             aut_si = c('log_si_aut_si1',
-                                                        'log_si_aut_si2',
-                                                        'log_si_aut_si3')),
-                             opt_method = 'BFGS',
-                             use_parscale = TRUE)
-  
+                             grouping = list(),
+                             use_parscale = TRUE,
+                             control = list(reltol = 1e-10,
+                                            maxit = 1000))
   
   ## Get the model fit
-  fit <- gadget3:::g3_fit(model, params.out)
-  save(fit, file = file.path(base_dir, vers, 'fit.Rdata'))
+  fit <- g3_fit(tmb_model, params_out)
+  save(fit, file = file.path(base_dir, vers, 'WGTS/fit.Rdata'))
+  gadget_plots(fit, file.path(base_dir, vers, 'WGTS/figs'), file_type = 'html')
   
-  ## Plot gadget2 vs gadget3 comparisons, and get all model plots
-  gadget_plots(fit, file.path(base_dir, vers, 'figs'))
-  #source(file.path(base_dir, "src/g3_vs_assessmentmodel_graphs.R"))
   
   ## Run the retro
   if (run_retro){
