@@ -115,13 +115,40 @@ growmature_imm <- list(g3a_growmature(imm_stock,
                                       output_stocks = list(mat_stock),
                                       transition_f = ~cur_time > 0))
 
-growmature_mat <- list(g3a_growmature(mat_stock,
-                                      impl_f = g3a_grow_impl_bbinom(
-                                        delta_len_f = g3a_grow_lengthvbsimple(by_stock = 'species'),
-                                        delta_wgt_f = g3a_grow_weightsimple(by_stock = 'species'),
-                                        beta_f = g3_parameterized('bbin', by_stock = 'species', scale = 10),
-                                        maxlengthgroupgrowth = mlgg,
-                                        by_stock = 'species')))
+grow_imm <- list(g3a_growmature(imm_stock,
+                                impl_f = g3a_grow_impl_bbinom(
+                                  delta_len_f = g3a_grow_lengthvbsimple(by_stock = 'species'),
+                                  delta_wgt_f = g3a_grow_weightsimple(by_stock = 'species'),
+                                  beta_f = g3_parameterized('bbin', by_stock = 'species', scale = 10),
+                                  maxlengthgroupgrowth = mlgg,
+                                  by_stock = 'species')))
+
+grow_mat <- list(g3a_growmature(mat_stock,
+                                impl_f = g3a_grow_impl_bbinom(
+                                  delta_len_f = g3a_grow_lengthvbsimple(by_stock = 'species'),
+                                  delta_wgt_f = g3a_grow_weightsimple(by_stock = 'species'),
+                                  beta_f = g3_parameterized('bbin', by_stock = 'species', scale = 10),
+                                  maxlengthgroupgrowth = mlgg,
+                                  by_stock = 'species')))
+
+## ----------------------------------------------------------------------------
+## EXPERIMENT
+## Using a spawning action to mimic a fixed maturity ogive
+## This should be a proportion moving per age group so will not work with simplessb
+spawn_as_maturity <- list(g3a_spawn(imm_stock,
+                                    recruitment_f = g3a_spawn_recruitment_simplessb(g3_parameterized('mu', 
+                                                                                                     by_stock = TRUE, 
+                                                                                                     by_age = TRUE)),
+                                    output_stocks = list(mat_stock),
+                                    mean_f = g3a_renewal_vonb(by_stock = 'species'),
+                                    stddev_f = g3_parameterized('init.sd', by_stock = TRUE, by_age = TRUE),
+                                    alpha_f = g3_parameterized('walpha', by_stock = 'species'),
+                                    beta_f = g3_parameterized('wbeta', by_stock = 'species'),
+                                    run_at = 5,
+                                    recruit_at = 7)
+                          )
+
+
 
 # spawning <- list(g3a_spawn(mat_stock,
 #                            recruitment_f = g3a_spawn_recruitment_ricker(

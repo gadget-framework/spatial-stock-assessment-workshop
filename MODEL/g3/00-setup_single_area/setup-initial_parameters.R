@@ -5,7 +5,7 @@
 ## -----------------------------------------------------------------------------
 
 ## Natural mortality, length-at-age, maturity, and K (?)
-params_age <- read.csv(file = file.path(base_dir, 'data/parameters_age.csv'))
+load(file = file.path('MODEL', 'data/params_age.Rdata'))
 
 params_bio <- list(
   

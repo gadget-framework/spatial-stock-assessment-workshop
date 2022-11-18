@@ -26,7 +26,7 @@ vers <- 'models/TEST'
 
 ## If FALSE, all data files will be read from "../data"
 ## If TRUE, the mfdb will be queried and data files written to "../data"
-read_data <- FALSE
+read_data <- TRUE
 
 ## Whether or not to run iterative re-weighting
 run_iterative <- FALSE
@@ -60,8 +60,6 @@ time_actions <- list(g3a_time(start_year = min(defaults$year),
                               end_year = max(defaults$year),
                               defaults$timestep),
                      list())
-
-fs::dir_create(file.path(base_dir, 'QQ', c('jkjkj', 'popop')))
 
 ## Data and model folders
 fs::dir_create(file.path(base_dir, vers, 'OPT', 'figs'))
@@ -100,11 +98,13 @@ stock_actions <- c(initial_conditions_imm,
                    ageing_imm,
                    renewal_imm,
                    growmature_imm,
+                   #grow_imm,
+                   #spawn_as_maturity,
                    list(),
                    initial_conditions_mat,
                    natural_mortality_mat,
                    ageing_mat,
-                   growmature_mat,
+                   grow_mat,
                    #spawning,
                    list())
 
@@ -159,14 +159,18 @@ tmb_param <-
   g3_init_guess('p3', 50,0.01,100,1) %>% 
   g3_init_guess('p4', 50,0.01,100,1) %>% 
   g3_init_guess('LP', 100,10,300,1) %>% 
-  g3_init_guess('init.sd', 1, 1, 1, 0)
+  g3_init_guess('init.sd', 1, 1, 1, 0) %>% 
+  g3_init_guess('imm.mu.0', 0, 0, 1, 0) %>% 
+  g3_init_guess('imm.mu.1', 0.1125, 0, 1, 0) %>% 
+  g3_init_guess('imm.mu.2', 0.6, 0, 1, 0) %>% 
+  g3_init_guess('imm.mu.3', 1, 0, 1, 0) 
 
 ## Add age-varying natural mortality
 ## The operating model has natural mortality rates that vary per pseudoyear (i.e. per step)
 ## We therefore use the mean value for each calender year
 
 m_by_age <- params_age %>% 
-  mutate(age = floor(age_in_years)) %>% 
+  mutate(age = floor(Age)) %>% 
   group_by(age) %>% 
   summarise(M = mean(M)) %>% 
   pull(M)
@@ -200,7 +204,7 @@ if (!run_iterative){
                                         maxit = 1000),
                          print_status = TRUE)
   
-  ## Gather fit
+   ## Gather fit
   fit <- g3_fit(tmb_model, params_opt)
   
   ## Write to file
