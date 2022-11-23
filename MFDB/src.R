@@ -8,7 +8,7 @@ collate_catch <- function(data, fleet_df, species, sampling_type){
       mutate(month = 1,
              species = species,
              sampling_type = sampling_type,
-             count = value) %>% 
+             count = value*1000) %>% 
       select(year, month, areacell = areas, 
              sampling_type, gear, count, species)
     )

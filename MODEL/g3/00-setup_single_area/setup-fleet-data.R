@@ -9,9 +9,10 @@
 ## -----------------------------------------------------------------------------
 
 survey_landings <- 
-  structure(expand.grid(year = defaults$year, step = 1:4) %>% 
+  structure(expand.grid(year = 1972:2015, step = 1:4) %>% 
               mutate(area = 1, total_weight = 1),
-            area_group = mfdb_group(`1` = 1))
+            area_group = mfdb_group(`1` = 1)) %>%
+  arrange(year)
 
 ## -----------------------------------------------------------------------------
 ## Fisheries

@@ -8,14 +8,12 @@
 imm_stock <- 
   g3_stock(c(species = 'yft', 'imm'), seq(10, 195, 5)) %>%
   g3s_livesonareas(areas[c('1')]) %>%
-  #g3s_age(minage = 1, maxage = 12)
-  g3s_age(minage = 0, maxage = 3)
+  g3s_age(minage = 0, maxage = 2)
 
 ## Mature stock
 mat_stock <- 
   g3_stock(c(species = 'yft', 'mat'), seq(10, 195, 5)) %>%
   g3s_livesonareas(areas[c('1')]) %>%
-  #g3s_age(minage = 4, maxage = 28)
   g3s_age(minage = 1, maxage = 7)
 
 stocks <- list(imm_stock, mat_stock)
@@ -23,7 +21,7 @@ stocks <- list(imm_stock, mat_stock)
 ## -----------------------------------------------------------------------------
 
 ## Maximum number of length groups a stock can group within a time step (maxlengthgroupgrowth)
-mlgg <- 5
+mlgg <- 3
 
 ## How do set up the initial population
 ## Options:
@@ -35,7 +33,6 @@ init_abund_mode <- 2
 ## comp_id - stock id used to specify parameter names
 comp_id <- 'species'
 
-
 ## -----------------------------------------------------------------------------
 ##
 ## Setup model actions
@@ -43,13 +40,13 @@ comp_id <- 'species'
 ##
 ## -----------------------------------------------------------------------------
 
-## -----------------------------------------------------------------------------
-##
-## Immature actions
-## 
-## -----------------------------------------------------------------------------
+load(file = file.path('MODEL', 'data/params_age.Rdata'))
 
 comp_id <- 'species'
+
+exp_linf <- FALSE
+exp_k <- FALSE
+exp_recl <- FALSE
 
 initial_conditions_imm <- list(g3a_initialconditions_normalparam(imm_stock,
                                                                  factor_f = 
@@ -58,8 +55,13 @@ initial_conditions_imm <- list(g3a_initialconditions_normalparam(imm_stock,
                                                                               comp_id,
                                                                               mature = FALSE,
                                                                               init_mode = init_abund_mode,
-                                                                              naturalmortality = g3_parameterized('M', by_stock = TRUE, by_age = TRUE)),
-                                                                 mean_f = g3a_renewal_vonb(by_stock = 'species'),
+                                                                              naturalmortality = g3_timeareadata('imm_M',
+                                                                                                                 params_age %>% select(age, step, area, M), value_field = 'M')),
+                                                                 mean_f = g3a_renewal_vonb(Linf = g3_parameterized("Linf", by_stock = 'species', exponentiate = exp_linf),
+                                                                                           K = g3_parameterized("K", by_stock = 'species', exponentiate = exp_k, scale = 0.001),
+                                                                                           recl = g3_parameterized("recl", by_stock = 'species', exponentiate = exp_recl)),
+                                                                 stddev_f = g3_timeareadata('imm_init_sd', 
+                                                                                            params_age %>% select(age, step, area ,sd), value_field = 'sd'),
                                                                  by_age = TRUE,
                                                                  wgt_by_stock = 'species'))
 
@@ -70,18 +72,36 @@ initial_conditions_mat <- list(g3a_initialconditions_normalparam(mat_stock,
                                                                               comp_id,
                                                                               mature = TRUE,
                                                                               init_mode = init_abund_mode,
-                                                                              naturalmortality = g3_parameterized('M', by_stock = TRUE, by_age = TRUE)),
-                                                                 mean_f = g3a_renewal_vonb(by_stock = 'species'),
+                                                                              naturalmortality = g3_timeareadata('mat_M', 
+                                                                                                                 params_age %>% select(age, step, area, M), value_field = 'M')),
+                                                                 mean_f = g3a_renewal_vonb(Linf = g3_parameterized("Linf", by_stock = 'species', exponentiate = exp_linf),
+                                                                                           K = g3_parameterized("K", by_stock = 'species', exponentiate = exp_k, scale = 0.001),
+                                                                                           recl = g3_parameterized("recl", by_stock = 'species', exponentiate = exp_recl)),
+                                                                 stddev_f = g3_timeareadata('mat_init_sd', 
+                                                                                            params_age %>% select(age, step, area, sd), value_field = 'sd'),
                                                                  by_age = TRUE,
                                                                  wgt_by_stock = 'species'))
 
 
-natural_mortality_imm <- list(g3a_naturalmortality(imm_stock, g3a_naturalmortality_exp(by_stock = TRUE, by_age = TRUE)))
-natural_mortality_mat <- list(g3a_naturalmortality(mat_stock, g3a_naturalmortality_exp(by_stock = TRUE, by_age = TRUE)))
+## -------------------------
+## Natural mortality actions
+## -------------------------
 
+natural_mortality_imm <- list(g3a_naturalmortality(imm_stock, g3a_naturalmortality_exp(g3_timeareadata('imm_M', 
+                                                                                                       params_age %>% select(age, step, area, M), value_field = 'M'))))
+
+natural_mortality_mat <- list(g3a_naturalmortality(mat_stock, g3a_naturalmortality_exp(g3_timeareadata('mat_M', 
+                                                                                                       params_age %>% select(age, step, area, M), value_field = 'M'))))
+## ------------------
+## Ageing actions
+## ------------------
 
 ageing_imm <- list(g3a_age(imm_stock, list(mat_stock)))
 ageing_mat <- list(g3a_age(mat_stock, list()))
+
+## ------------------
+## Renewal actions
+## ------------------
 
 renewal_imm <- list(g3a_renewal_normalparam(imm_stock,
                                             factor_f = g3_parameterized('rec', 
@@ -92,7 +112,9 @@ renewal_imm <- list(g3a_renewal_normalparam(imm_stock,
                                                                                                  exponentiate = FALSE,
                                                                         ),
                                                                         ifmissing = NaN),
-                                            mean_f = g3a_renewal_vonb(by_stock = 'species'),
+                                            mean_f = g3a_renewal_vonb(Linf = g3_parameterized("Linf", by_stock = 'species', exponentiate = exp_linf),
+                                                                      K = g3_parameterized("K", by_stock = 'species', exponentiate = exp_k, scale = 0.001),
+                                                                      recl = g3_parameterized("recl", by_stock = 'species', exponentiate = exp_recl)),
                                             by_stock = 'species',
                                             wgt_by_stock = 'species',
                                             run_f = gadget3:::f_substitute(~ age == minage &&
@@ -101,11 +123,14 @@ renewal_imm <- list(g3a_renewal_normalparam(imm_stock,
                                                                            list(minage = g3_stock_def(imm_stock, 'stock__minage')))))
 
 
-
+## ----------------------------
+## Immature growth and maturity
+## ----------------------------
 
 growmature_imm <- list(g3a_growmature(imm_stock,
                                       impl_f = g3a_grow_impl_bbinom(
-                                        delta_len_f = g3a_grow_lengthvbsimple(by_stock = 'species'),
+                                        delta_len_f = g3a_grow_lengthvbsimple(g3_parameterized("Linf", by_stock = 'species', exponentiate = exp_linf),
+                                                                              g3_parameterized("K", by_stock = 'species', exponentiate = exp_k, scale = 0.001)),
                                         delta_wgt_f = g3a_grow_weightsimple(by_stock = 'species'),
                                         beta_f = g3_parameterized('bbin', by_stock = 'species', scale = 10),
                                         maxlengthgroupgrowth = mlgg,
@@ -117,7 +142,8 @@ growmature_imm <- list(g3a_growmature(imm_stock,
 
 grow_imm <- list(g3a_growmature(imm_stock,
                                 impl_f = g3a_grow_impl_bbinom(
-                                  delta_len_f = g3a_grow_lengthvbsimple(by_stock = 'species'),
+                                  delta_len_f = g3a_grow_lengthvbsimple(g3_parameterized("Linf", by_stock = 'species', exponentiate = exp_linf),
+                                                                        g3_parameterized("K", by_stock = 'species', exponentiate = exp_k, scale = 0.001)),
                                   delta_wgt_f = g3a_grow_weightsimple(by_stock = 'species'),
                                   beta_f = g3_parameterized('bbin', by_stock = 'species', scale = 10),
                                   maxlengthgroupgrowth = mlgg,
@@ -125,7 +151,8 @@ grow_imm <- list(g3a_growmature(imm_stock,
 
 grow_mat <- list(g3a_growmature(mat_stock,
                                 impl_f = g3a_grow_impl_bbinom(
-                                  delta_len_f = g3a_grow_lengthvbsimple(by_stock = 'species'),
+                                  delta_len_f = g3a_grow_lengthvbsimple(g3_parameterized("Linf", by_stock = 'species', exponentiate = exp_linf),
+                                                                        g3_parameterized("K", by_stock = 'species', exponentiate = exp_k, scale = 0.001)),
                                   delta_wgt_f = g3a_grow_weightsimple(by_stock = 'species'),
                                   beta_f = g3_parameterized('bbin', by_stock = 'species', scale = 10),
                                   maxlengthgroupgrowth = mlgg,
@@ -146,7 +173,7 @@ spawn_as_maturity <- list(g3a_spawn(imm_stock,
                                     beta_f = g3_parameterized('wbeta', by_stock = 'species'),
                                     run_at = 5,
                                     recruit_at = 7)
-                          )
+)
 
 
 

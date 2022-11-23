@@ -18,7 +18,7 @@ library(gadgetplots)
 base_dir <- 'MODEL/g3'
 
 ## Model version
-vers <- 'models/TEST'
+vers <- 'models/02-baseline'
 
 ## -----------------------------------------------------------------------------
 ## OPTIONS 
@@ -87,7 +87,8 @@ if(read_data){
 
 ## Configure model actions ------------------------------------------------------------
 
-source(file.path(base_dir, '00-setup_single_area', 'setup-fleets.R'))  # Generates fleet_actions
+source(file.path(base_dir, '00-setup_single_area', 'setup-fleets_andersen.R'))  # Generates fleet_actions
+#source(file.path(base_dir, '00-setup_single_area', 'setup-fleets.R'))  # Generates fleet_actions
 source(file.path(base_dir, '00-setup_single_area', 'setup-likelihood.R'))  # Generates likelihood_actions
 
 ##### Compile the r- and tmb-based models ######################################
@@ -111,7 +112,7 @@ stock_actions <- c(initial_conditions_imm,
 ## Collate model actions
 actions <- c(
   stock_actions,
-  survey_actions,
+ # survey_actions,
   fleet_actions,
   likelihood_actions,
   time_actions
@@ -133,19 +134,19 @@ tmb_param <- attr(tmb_model, 'parameter_template')
 ## Fill in the parameter template
 tmb_param <- 
   tmb_param %>% 
-  g3_init_guess('\\.rec',1, 0.001, 1000, 1) %>% 
-  g3_init_guess('\\.init', 1, 0.001, 1000, 1) %>% 
-  g3_init_guess('recl', 5, 1, 30, 1) %>% 
+  g3_init_guess('\\.rec', 10, 0.001, 25, 1) %>% 
+  g3_init_guess('\\.init', 50, 0.001, 100, 1) %>% 
+  g3_init_guess('recl', 22, 5, 30, 0) %>% 
   g3_init_guess('rec.sd', 5, 4, 20, 1) %>% 
-  g3_init_guess('rec.scalar', 1, 1, 500, 1) %>% 
+  g3_init_guess('rec.scalar', 5, 1, 10, 1) %>% 
   g3_init_guess('\\.rec.sigma', 0.2, -1, 1, 0) %>% 
-  g3_init_guess('init.scalar', 1, 1, 500, 1) %>% 
-  g3_init_guess('Linf', 140, 100, 200, 1) %>% 
-  g3_init_guess('\\.K', 90, 40, 200, 1) %>%
+  g3_init_guess('init.scalar', 5, 1, 10, 1) %>% 
+  g3_init_guess('Linf', params_bio$Linf, params_bio$Linf*0.75, params_bio$Linf*1.25, 0) %>% 
+  g3_init_guess('\\.K', 500,400,600,1) %>% #params_bio$Kbase*1e3, params_bio$Kbase*1e3, params_bio$Kbase*1e3, 1) %>%
   g3_init_guess('bbin', 6, 1e-08, 100, 1) %>% 
   g3_init_guess('\\.alpha', 0.5, 0.01, 3, 1) %>% 
-  g3_init_guess('l50', 50, 10, 100, 1) %>% 
-  g3_init_guess('init.F', 0, 0.1, 1, 0) %>% 
+  g3_init_guess('l50', 50, 10, 200, 1) %>% 
+  g3_init_guess('init.F', 0.1, 00.1, 1, 1) %>% 
   g3_init_guess('\\.M', 0.15, 0.001, 1, 0) %>%  
   g3_init_guess('prop_mat0', 0.5, 0.1, 0.9, 0) %>%
   g3_init_guess('B0', 100, 1, 5000, 1) %>%
@@ -153,37 +154,35 @@ tmb_param <-
   g3_init_guess('mat_l50', params_bio$mat.l50, 0.75*params_bio$mat.l50, 1.25*params_bio$mat.l50, 1) %>%  #mat.l50$l50, 0.001,1000,1) %>% #
   g3_init_guess('walpha', params_bio$walpha, 1e-10, 1, 0) %>% 
   g3_init_guess('wbeta', params_bio$wbeta, 2, 4, 0) %>% 
-  g3_init_guess('p0', 0.5,0,1,1) %>% 
-  g3_init_guess('p1', 0.5,0,1,1) %>% 
-  g3_init_guess('p2', 0.5,0,1,1) %>% 
-  g3_init_guess('p3', 50,0.01,100,1) %>% 
-  g3_init_guess('p4', 50,0.01,100,1) %>% 
-  g3_init_guess('LP', 100,10,300,1) %>% 
-  g3_init_guess('init.sd', 1, 1, 1, 0) %>% 
-  g3_init_guess('imm.mu.0', 0, 0, 1, 0) %>% 
-  g3_init_guess('imm.mu.1', 0.1125, 0, 1, 0) %>% 
-  g3_init_guess('imm.mu.2', 0.6, 0, 1, 0) %>% 
-  g3_init_guess('imm.mu.3', 1, 0, 1, 0) 
-
-## Add age-varying natural mortality
-## The operating model has natural mortality rates that vary per pseudoyear (i.e. per step)
-## We therefore use the mean value for each calender year
-
-m_by_age <- params_age %>% 
-  mutate(age = floor(Age)) %>% 
-  group_by(age) %>% 
-  summarise(M = mean(M)) %>% 
-  pull(M)
-
-tmb_param[grepl('\\imm.M.[0-9]', tmb_param$switch), 'value'] <- m_by_age[1:4]
-tmb_param[grepl('\\mat.M.[0-9]', tmb_param$switch), 'value'] <- m_by_age[2:8]  
-
+  g3_init_guess('ander.p0$', 0, -1, 1, 0) %>%
+  g3_init_guess('ander.p2$', 1, 0, 1,0) %>% 
+  g3_init_guess('ander.p5$', max(g3_stock_def(mat_stock, 'minlen')), 10, 200, 0) %>% 
+  g3_init_guess('\\.p3$', 50, 0.01, 100, 1) %>% 
+  g3_init_guess('\\.p4$', 50, 0.01, 100, 1) %>% 
+  g3_init_guess('\\.Lmode$', 
+                max(g3_stock_def(mat_stock, 'minlen'))/2, 
+                max(g3_stock_def(mat_stock, 'minlen'))/2.5, 
+                max(g3_stock_def(mat_stock, 'minlen'))/1.5, 1) 
+  
 ## --------------------------------------------------------------------------
 
 ## Run the R-model
 result <- model(tmb_param$value)
-result[[1]]
-attr(result, 'yft_imm__num')
+print(result[[1]])
+  
+# tmp <- attributes(result)
+# load(file = 'result0.Rdata')
+# tmp2 <- attributes(result0)
+# 
+# tmp2$yft_mat__num %>% as.data.frame.table() %>% bind_cols(tmp$yft_mat__num %>% as.data.frame.table())
+# tmp2$yft_imm__num %>% as.data.frame.table() %>% bind_cols(tmp$yft_imm__num %>% as.data.frame.table())
+
+#(attr(result, 'yft_mat__num') %>% sum()) + (attr(result, 'yft_imm__num') %>% sum())
+#tmp <- attributes(result)
+#qq <- tmp$hist_yft_imm__num %>% as.data.frame.table() %>% group_by(time) %>% summarise(f = sum(Freq))
+#ww <- tmp$hist_yft_mat__num %>% as.data.frame.table() %>% group_by(time) %>% summarise(f = sum(Freq))
+
+#print(qq$f + ww$f)
 
 # List all available reports
 print(names(attributes(result)))
