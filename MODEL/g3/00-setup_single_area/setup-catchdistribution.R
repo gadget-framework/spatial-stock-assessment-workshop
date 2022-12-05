@@ -8,6 +8,8 @@ minlength <- g3_stock_def(imm_stock, 'minlen') %>% min()
 maxlength <- g3_stock_def(mat_stock, 'minlen') %>% max()
 dl <- g3_stock_def(mat_stock, 'stock__dl') %>% min()
 
+Ls <- seq(minlength, maxlength, by = dl)
+
 ## Query length data 
 ## Commercial fleets
 ldist.trol <-
@@ -19,7 +21,7 @@ ldist.trol <-
                       age = mfdb_interval("all",c(minage, maxage),
                                           open_ended = c("upper", "lower")),
                       length = mfdb_interval("len", 
-                                             seq(minlength, maxlength, by = dl),
+                                             Ls,
                                              open_ended = c("upper","lower"))),
                       defaults))
 
@@ -32,7 +34,7 @@ ldist.pse <-
                       age = mfdb_interval("all",c(minage, maxage),
                                           open_ended = c("upper", "lower")),
                       length = mfdb_interval("len", 
-                                             seq(minlength, maxlength, by = dl),
+                                             Ls,
                                              open_ended = c("upper","lower"))),
                       defaults))
 
@@ -45,7 +47,7 @@ ldist.bb <-
                       age = mfdb_interval("all",c(minage, maxage),
                                           open_ended = c("upper", "lower")),
                       length = mfdb_interval("len", 
-                                             seq(minlength, maxlength, by = dl),
+                                             Ls,
                                              open_ended = c("upper","lower"))),
                       defaults))
 
@@ -58,7 +60,7 @@ ldist.gil <-
                       age = mfdb_interval("all",c(minage, maxage),
                                           open_ended = c("upper", "lower")),
                       length = mfdb_interval("len", 
-                                             seq(minlength, maxlength, by = dl),
+                                             Ls,
                                              open_ended = c("upper","lower"))),
                       defaults))
 
@@ -71,7 +73,7 @@ ldist.lln <-
                       age = mfdb_interval("all",c(minage, maxage),
                                           open_ended = c("upper", "lower")),
                       length = mfdb_interval("len", 
-                                             seq(minlength, maxlength, by = dl),
+                                             Ls,
                                              open_ended = c("upper","lower"))),
                       defaults))
 
@@ -84,7 +86,7 @@ ldist.other <-
                       age = mfdb_interval("all",c(minage, maxage),
                                           open_ended = c("upper", "lower")),
                       length = mfdb_interval("len", 
-                                             seq(minlength, maxlength, by = dl),
+                                             Ls,
                                              open_ended = c("upper","lower"))),
                       defaults))
 
@@ -97,7 +99,7 @@ ldist.hln <-
                       age = mfdb_interval("all",c(minage, maxage),
                                           open_ended = c("upper", "lower")),
                       length = mfdb_interval("len", 
-                                             seq(minlength, maxlength, by = dl),
+                                             Ls,
                                              open_ended = c("upper","lower"))),
                       defaults))
 

@@ -4,8 +4,27 @@
 ##
 ## -----------------------------------------------------------------------------
 
-## Natural mortality, length-at-age, maturity, and K (?)
-load(file = file.path('MODEL', 'data/params_age.Rdata'))
+vonb <- function(age, Linf, K, recl){
+  Linf * (1 - exp(-1 * K * (age - (1 + log(1 - 
+                                             recl/Linf)/K))))  
+}
+
+find_recl <- function(data){
+  
+  age <- data$age
+  K <- data$K_gadget
+  Linf <- 145
+  score <- data$L
+  
+  Ls <- seq(-200,200,by=0.1)
+  
+  out <- vonb(age, Linf, K, Ls)
+  
+  return(Ls[which.min(abs(score - out))])
+  
+  
+}
+
 
 params_bio <- list(
   
@@ -16,9 +35,38 @@ params_bio <- list(
   Lmin = 22,
   Kbase = 0.455,
   mat.a50 = 9,
-  mat.l50 = 74.721
+  mat.l50 = 74.721,
+  lenage_cv = 0.1
   
 )
+
+## Read table of age varying information
+dat <- read_table(file = 'MODEL/data/params_age')
+
+## Standard deviation for len at age
+dat$sd <- dat$L * params_bio$lenage_cv
+
+## Extend the lookup table for an extra year
+dat2 <- rbind(
+  dat, 
+  do.call("rbind", replicate(4, tail(dat, n = 1), simplify = FALSE))
+)
+
+## Add steps gadget year and step
+dat2$age <- rep(0:7, each = 4)
+dat2$step <- rep(1:4, times = 8)
+dat2$area <- 1
+
+## Add new K column, based on these multipliers
+dat2$K <- ifelse(is.na(dat2$K), 1, dat2$K)
+dat2$Kbase <- params_bio$Kbase
+dat2$K_gadget <- dat2$K * dat2$Kbase
+
+tmp <- lapply(split(dat2, 1:nrow(dat2)), function(x) return(find_recl(x)))
+dat2$recl <- do.call('c', tmp)
+dat2$initl <- vonb(dat2$age, 145, dat2$K_gadget, dat2$recl)
+
+params_age <- dat2
 
 ## Check length-weight
 plot(10:195, params_bio$walpha*(10:195)^params_bio$wbeta, type = 'l', xlab = 'length', ylab = 'weight')
