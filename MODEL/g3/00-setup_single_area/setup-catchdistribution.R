@@ -8,7 +8,7 @@ minlength <- g3_stock_def(imm_stock, 'minlen') %>% min()
 maxlength <- g3_stock_def(mat_stock, 'minlen') %>% max()
 dl <- g3_stock_def(mat_stock, 'stock__dl') %>% min()
 
-Ls <- seq(minlength, maxlength, by = dl)
+Ls <- seq(10, 200, by = 5)
 
 ## Query length data 
 ## Commercial fleets

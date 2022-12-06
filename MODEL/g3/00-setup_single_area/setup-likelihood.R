@@ -91,5 +91,61 @@ likelihood_actions <- list(
     nll_breakdown = nll_breakdown,
     report = lik_report),
   
+  # g3l_abundancedistribution(
+  #   'cpueQ1',
+  #   (cpue1[[1]] %>% filter(step == 1)),
+  #   fleets = list(),
+  #   stocks = stocks,
+  #   g3l_distribution_surveyindices_log(beta = 1),
+  #   nll_breakdown = nll_breakdown,
+  #   report = lik_report),
+  # 
+  # g3l_abundancedistribution(
+  #   'cpueQ2',
+  #   (cpue1[[1]] %>% filter(step == 2)),
+  #   fleets = list(),
+  #   stocks = stocks,
+  #   g3l_distribution_surveyindices_log(beta = 1),
+  #   nll_breakdown = nll_breakdown,
+  #   report = lik_report),
+  # 
+  # g3l_abundancedistribution(
+  #   'cpueQ3',
+  #   (cpue1[[1]] %>% filter(step == 3)),
+  #   fleets = list(),
+  #   stocks = stocks,
+  #   g3l_distribution_surveyindices_log(beta = 1),
+  #   nll_breakdown = nll_breakdown,
+  #   report = lik_report),
+  # 
+  # g3l_abundancedistribution(
+  #   'cpueQ4',
+  #   (cpue1[[1]] %>% filter(step == 4)),
+  #   fleets = list(),
+  #   stocks = stocks,
+  #   g3l_distribution_surveyindices_log(beta = 1),
+  #   nll_breakdown = nll_breakdown,
+  #   report = lik_report),
+  
+  
+  
   list()
 )
+
+if (include_tagging){
+  likelihood_actions <- 
+    c(likelihood_actions, 
+      list(
+        g3l_catchdistribution(
+          'pse_tagging',
+          tagrecap,
+          fleets = list(tag_pse),
+          stocks = stocks,
+          g3l_distribution_sumofsquares(),
+          nll_breakdown = nll_breakdown,
+          report = lik_report)
+      ),
+      list()
+    )
+  }
+          

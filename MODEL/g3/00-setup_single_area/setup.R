@@ -20,7 +20,9 @@ source("~/gadget-framework/spatial-stock-assessment-workshop/MODEL/g3/spawn_help
 base_dir <- 'MODEL/g3'
 
 ## Model version
-vers <- 'models/08-baseline_bbinoffsetexp_matconstantfinalstep_bbin100_mlgg10_andv2'
+vers <- 'models/11-baseline_mlgg6_matconstant4_bbin1_matage_allrec'
+
+include_tagging <- FALSE
 
 ## -----------------------------------------------------------------------------
 ## OPTIONS 
@@ -70,6 +72,7 @@ fs::dir_create(file.path('MODEL/data'))
 
 ## ------------------------------------------------------------------------------------
 
+
 # Sets up the stock objects and generates the stock actions
 source(file.path(base_dir, '00-setup_single_area', 'setup-model.R'))  
 
@@ -89,7 +92,8 @@ if(read_data){
 
 ## Configure model actions ------------------------------------------------------------
 
-source(file.path(base_dir, '00-setup_single_area', 'setup-fleets_andersen.R'))  # Generates fleet_actions
+source(file.path(base_dir, '00-setup_single_area', 'setup-fleets_andersen2.R'))  # Generates fleet_actions
+#source(file.path(base_dir, '00-setup_single_area', 'setup-tagging.R'))  # Generates fleet_actions
 #source(file.path(base_dir, '00-setup_single_area', 'setup-fleets.R'))  # Generates fleet_actions
 source(file.path(base_dir, '00-setup_single_area', 'setup-likelihood.R'))  # Generates likelihood_actions
 #source(file.path(base_dir, '00-setup_single_area', 'setup-likelihood_multi.R'))  # Generates likelihood_actions
@@ -102,30 +106,34 @@ stock_actions <- c(initial_conditions_imm,
                    #initial_conditions_imm_short,
                    #initial_renewal,
                    natural_mortality_imm,
-                   ageing_imm,
                    renewal_imm,
                    #growmature_imm,
                    growmature_imm_constant,
                    #grow_imm,
                    #spawn_as_maturity,
+                   ageing_imm,
                    list(),
                    initial_conditions_mat,
                    #initial_renewal_mat,
                    #initial_conditions_mat_short,
                    natural_mortality_mat,
-                   ageing_mat,
                    grow_mat,
-                   #spawn_bevholt,
+                   #spawn_bevholt_simple,
+                   ageing_mat,
                    list())
 
 ## Collate model actions
 actions <- c(
   stock_actions,
-  #survey_actions,
+#  survey_actions,
   fleet_actions,
   likelihood_actions,
   time_actions
 )
+
+if (include_tagging){
+  actions <- c(actions, tagging_actions_flat, list())
+}
 
 ## It is possible to add reporting to the model, e.g.
 #actions <- c(actions, list(
@@ -143,8 +151,8 @@ tmb_param <- attr(tmb_model, 'parameter_template')
 ## Fill in the parameter template
 tmb_param <- 
   tmb_param %>% 
-  g3_init_guess('\\.rec', 50, 0.001, 100, 1) %>% 
-  g3_init_guess('\\.init', 50, 0.001, 100, 1) %>% 
+  g3_init_guess('\\.rec', 100, 80, 120, 1) %>% 
+  g3_init_guess('\\.init', 10, 0.001, 20, 1) %>% 
   g3_init_guess('recl', 22, 5, 30, 0) %>% 
   g3_init_guess('rec.sd', 6, 0, 20, 1) %>% 
   g3_init_guess('rec.scalar', 1, 1, 100, 0) %>% 
@@ -152,15 +160,17 @@ tmb_param <-
   g3_init_guess('init.scalar', 1, 1, 10, 0) %>% 
   g3_init_guess('Linf', params_bio$Linf, params_bio$Linf*0.75, params_bio$Linf*1.25, 0) %>% 
   g3_init_guess('\\.K', 0.455, 0.001, 2, 1) %>% #params_bio$Kbase*1e3, params_bio$Kbase*1e3, params_bio$Kbase*1e3, 1) %>%
-  g3_init_guess('bbin', 100, 1e-08, 101, 0) %>% 
+  g3_init_guess('bbin', 0.1, 1e-08, 101, 0) %>% 
   g3_init_guess('\\.alpha', 0.5, 0.005, 3, 1) %>% 
   g3_init_guess('l50', params_bio$mat.l50, 0.75*params_bio$mat.l50, 1.25*params_bio$mat.l50, 1) %>% 
   g3_init_guess('init.F', 0, 0, 1, 0) %>% 
   g3_init_guess('\\.M', 0.15, 0.001, 1, 0) %>%  
   g3_init_guess('prop_mat0', 0.5, 0.1, 0.9, 1) %>%
  # g3_init_guess('B0', 9725, 8000, 10000, 1) %>%
-  g3_init_guess('mat_alpha', 95, 80, 110, 0) %>% # g3_init_guess('mat1', 0, 10, 200, 1) %>% 
+  g3_init_guess('mat_alpha', 95, 10, 110, 0) %>% # g3_init_guess('mat1', 0, 10, 200, 1) %>% 
   g3_init_guess('mat_l50', params_bio$mat.l50, 0.75*params_bio$mat.l50, 1.25*params_bio$mat.l50, 0) %>%  #mat.l50$l50, 0.001,1000,1) %>% #
+  g3_init_guess('mat_beta', 3.5, 0.1, 4, 0) %>% # g3_init_guess('mat1', 0, 10, 200, 1) %>% 
+  g3_init_guess('mat_a50', 2, 1, 3, 0) %>%  #mat.l50$l50, 0.001,1000,1) %>% #
   g3_init_guess('walpha', params_bio$walpha, 1e-10, 1, 0) %>% 
   g3_init_guess('wbeta', params_bio$wbeta, 2, 4, 0) %>% 
   g3_init_guess('ander.p0$', 0, -1, 1, 0) %>%
@@ -176,8 +186,9 @@ tmb_param <-
 #  g3_init_guess('bh_mu', 2, 0, 100, 1) %>% ## Maximum recruitment R0
 #  g3_init_guess('bh_lambda', 2, 0, 100, 1) %>% 
   g3_init_guess('srr_h', 0.8, 0, 1, 0) %>% 
-  g3_init_guess('R0', params_bio$R0/10e3, (params_bio$R0/10e3)*0.25, (params_bio$R0/10e3)*1.25, 1) %>% 
-  #g3_init_guess('R0', 22102650563, 22102650563, 22102650563, 0) %>% 
+  g3_init_guess('R0', params_bio$R0/10e3, (params_bio$R0/10e3)*0.25, (params_bio$R0/10e3)*1.25, 0) %>% 
+  g3_init_guess('B0', 2430345539/10e3, 2430345539/10e3, 2430345539/10e3, 0) %>% 
+  g3_init_guess('Lambda', 5000000/10e3, (5000000/10e3)*0.9, (5000000/10e3)*1.1, 1) %>% 
   #g3_init_guess('R0', 22102, 22102, 22102, 0) %>% 
   g3_init_guess('catchability', 0.5,0,1,1)
   
@@ -187,7 +198,7 @@ tmb_param <-
 result <- model(tmb_param$value)
 print(result[[1]])
 # 
-# test <- g3_fit(tmb_model, tmb_param)
+test <- g3_fit(tmb_model, tmb_param)
 # 
 # plot(test)
 # 

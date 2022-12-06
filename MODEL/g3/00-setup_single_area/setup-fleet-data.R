@@ -67,8 +67,14 @@ hln_landings <-
                            gear = 'HLN'),
                       defaults))
 
+all_landings <- 
+  mfdb_sample_count(mdb,
+                    NULL, 
+                    c(list(data_source = paste0('landings', data_source_suffix)),
+                      defaults))
+
 if (TRUE){
   save(lln_landings, hln_landings, other_landings, pse_landings, 
-       gil_landings, bb_landings, trol_landings, survey_landings,
+       gil_landings, bb_landings, trol_landings, survey_landings, all_landings,
        file = file.path('MODEL', 'data', 'fleet_data.Rdata'))
 }

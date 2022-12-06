@@ -6,6 +6,7 @@
 
 ## Immature stock
 imm_stock <- 
+  #g3_stock(c(species = 'yft', 'imm'), seq(10, 195, 5)) %>%
   g3_stock(c(species = 'yft', 'imm'), seq(10, 195, 5)) %>%
   g3s_livesonareas(areas[c('1')]) %>%
   g3s_age(minage = 0, maxage = 2)
@@ -15,6 +16,25 @@ mat_stock <-
   g3_stock(c(species = 'yft', 'mat'), seq(10, 195, 5)) %>%
   g3s_livesonareas(areas[c('1')]) %>%
   g3s_age(minage = 1, maxage = 7)
+
+
+if (include_tagging){
+  
+  source(file.path(base_dir, '00-setup_single_area', 'setup-tagging_data.R'))
+  
+  imm_stock <- 
+    g3_stock(c(species = 'yft', 'imm'), seq(10, 195, 5)) %>%
+    g3s_livesonareas(areas[c('1')]) %>%
+    g3s_tag(tags) %>% 
+    g3s_age(minage = 0, maxage = 2)
+  
+  mat_stock <- 
+    g3_stock(c(species = 'yft', 'mat'), seq(10, 195, 5)) %>%
+    g3s_livesonareas(areas[c('1')]) %>%
+    g3s_tag(tags) %>% 
+    g3s_age(minage = 1, maxage = 7)
+  
+}
 
 stocks <- list(imm_stock, mat_stock)
 
@@ -62,11 +82,13 @@ grow_par <- list(Linf = g3_parameterized('Linf', by_stock = 'species'),
                  #bbin = g3_parameterized('bbin', by_stock = 'species', scale = 10, offset = 1, exponentiate = TRUE),
                  bbin = g3_parameterized('bbin', by_stock = 'species', scale = 10),
                  K_table = g3_timeareadata('K', params_age %>% select(age, step, K), value_field = 'K'),
-                 mlgg = 10)
+                 mlgg = 6)
 
 ## Maturity
 mat_par <- list(mat_alpha = g3_parameterized('mat_alpha', by_stock = TRUE, scale = 0.001),
-                mat_l50 = g3_parameterized('mat_l50', by_stock = TRUE))
+                mat_l50 = g3_parameterized('mat_l50', by_stock = TRUE),
+                mat_alpha = g3_parameterized('mat_beta', by_stock = TRUE),
+                mat_l50 = g3_parameterized('mat_a50', by_stock = TRUE))
 
 ## Renewal and initialisation
 init_par <- list(recl = g3_parameterized('recl', by_stock = 'species'),
@@ -116,9 +138,9 @@ initial_conditions_imm_short <-
                                                                                                            mutate(Mat = 1 - Mat), 
                                                                                                          value_field = 'Mat'),
                                                                                 init = init_param,
-                                                                                M = mean(naturalmortality_data$M)),#g3_timeareadata('natmort', naturalmortality_data, value_field = 'M')),
-                                      mean_f = gadget3::g3_timeareadata('imm_Len', mean_len_data, value_field = 'L'),
-                                      stddev_f = g3_timeareadata('imm_init_sd', init_sd_data, value_field = 'sd'),
+                                                                                M = mean(naturalmortality_data$M)),# g3_timeareadata('natmort', naturalmortality_data, value_field = 'M')),
+                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_data, value_field = 'L'),
+                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_data, value_field = 'sd'),
                                       alpha_f = wl_par$walpha,
                                       beta_f = wl_par$wbeta)
   )
@@ -130,9 +152,9 @@ initial_conditions_mat_short <-
                                                                                                          maturity_init_data, 
                                                                                                          value_field = 'Mat'),
                                                                                 init = init_param,
-                                                                                M = mean(naturalmortality_data$M)),#,g3_timeareadata('mat_M', naturalmortality_data, value_field = 'M')),
-                                      mean_f = gadget3::g3_timeareadata('mat_Len', mean_len_data, value_field = 'L'),
-                                      stddev_f = g3_timeareadata('mat_init_sd', init_sd_data, value_field = 'sd'),
+                                                                                M = mean(naturalmortality_data$M)),# g3_timeareadata('stock_M', naturalmortality_data, value_field = 'M')),
+                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_data, value_field = 'L'),
+                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_data, value_field = 'sd'),
                                       alpha_f = wl_par$walpha,
                                       beta_f = wl_par$wbeta)
   )
@@ -248,18 +270,18 @@ ageing_mat <- list(g3a_age(mat_stock, list()))
 renewal_imm <- 
   list(
     g3a_renewal_normalparam(imm_stock,
-                            # factor_f = ~bounded(g3_param_table("yft.rec", expand.grid(
-                            #   cur_year = seq(start_year, end_year)))
-                            # , 0.001, 50),
-                            factor_f = g3_parameterized('rec',
-                                                        by_stock = list(imm_stock, mat_stock),
-                                                        by_year = TRUE,
-                                                        scale = g3_parameterized(name = 'rec.scalar',
-                                                                                 by_stock = list(imm_stock, mat_stock),
-                                                                                 exponentiate = FALSE,
-                                                                                 ),
-                                                        exponentiate = exp_rec,
-                                                        ifmissing = NaN),
+                            factor_f = ~g3_param_table("yft.rec", expand.grid(
+                              cur_year = seq(start_year, end_year),
+                              cur_step = 1:4)),
+                            # factor_f = g3_parameterized('rec',
+                            #                             by_stock = list(imm_stock, mat_stock),
+                            #                             by_year = TRUE,
+                            #                             scale = g3_parameterized(name = 'rec.scalar',
+                            #                                                      by_stock = list(imm_stock, mat_stock),
+                            #                                                      exponentiate = FALSE,
+                            #                                                      ),
+                            #                             exponentiate = exp_rec,
+                            #                             ifmissing = NaN),
                             # mean_f = g3a_renewal_vonb(Linf = grow_par$Linf, 
                             #                           K = g3_timeareadata('KK', growth_data, value_field = 'K'),
                             #                           recl = init_par$recl),# g3_timeareadata('stock_recl', recl_data, value_field = 'recl')),
@@ -268,7 +290,7 @@ renewal_imm <-
                             alpha_f = wl_par$walpha,
                             beta_f = wl_par$wbeta,
                             run_f = gadget3:::f_substitute(~ age == minage &&
-                                                             cur_step == 1 &&
+                                                             #cur_step == 1 &&
                                                              cur_time > 0 &&
                                                              !cur_year_projection,
                                                            list(minage = g3_stock_def(imm_stock, 'stock__minage'))))
@@ -307,8 +329,10 @@ growmature_imm_constant <-
                                                          beta_f = wl_par$wbeta),
                      beta_f = grow_par$bbin,
                      maxlengthgroupgrowth = grow_par$mlgg),
-                   maturity_f = g3a_mature_constant(alpha = mat_par$mat_alpha,
-                                                    l50 = mat_par$mat_l50),
+                   maturity_f = g3a_mature_constant(beta = mat_par$mat_beta,
+                                                    a50 = mat_par$mat_a50),
+                                                  #alpha = mat_par$mat_alpha,
+                                                  #l50 = mat_par$mat_l50),
                    output_stocks = list(mat_stock),
                    transition_f = ~cur_step_final)
   )
@@ -341,10 +365,25 @@ grow_mat <-
 
 ## ----------------------------------------------------------------------------
 
+
+spawn_bevholt_simple <- 
+  list(
+    g3a_spawn(mat_stock,
+              recruitment_f = g3a_spawn_recruitment_bevertonholt(mu = g3_parameterized('R0', scale = 10e3),
+                                                                 lambda = g3_parameterized('Lambda', by_year = TRUE)),
+              output_stocks = list(imm_stock),
+              mean_f = gadget3::g3_timeareadata('imm_Len', mean_len_data, value_field = 'L'),
+              stddev_f = gadget3::g3_timeareadata('imm_init_sd', init_sd_data, value_field = 'sd'),
+              alpha_f = wl_par$walpha,
+              beta_f = wl_par$wbeta,
+              run_f = ~cur_year > 1951)
+  )
+
+
 spawn_bevholt <- 
   list(
     g3a_spawn(mat_stock,
-              recruitment_f = g3a_bevholt_casal(g3_parameterized('R0'),
+              recruitment_f = g3a_bevholt_casal(g3_parameterized('B0', scale = 10e3),
                                                 g3_parameterized('srr_h'),
                                                 ~1),
               output_stocks = list(imm_stock),
@@ -355,6 +394,19 @@ spawn_bevholt <-
               run_f = ~cur_year > 1951)
     )
 
+spawn_bevholt2 <- 
+  list(
+    g3a_spawn(mat_stock,
+              recruitment_f = g3a_bevholt_b0(g3_parameterized('srr_h'),
+                                             g3_parameterized('R0', scale = 10e3),
+                                             g3_parameterized('B0', scale = 10e3)),
+              output_stocks = list(imm_stock),
+              mean_f = gadget3::g3_timeareadata('imm_Len', mean_len_data, value_field = 'L'),
+              stddev_f = gadget3::g3_timeareadata('imm_init_sd', init_sd_data, value_field = 'sd'),
+              alpha_f = wl_par$walpha,
+              beta_f = wl_par$wbeta,
+              run_f = ~cur_year > 1951)
+  )
 
 
 ## EXPERIMENT
