@@ -20,7 +20,7 @@ source("~/gadget-framework/spatial-stock-assessment-workshop/MODEL/g3/spawn_help
 base_dir <- 'MODEL/g3'
 
 ## Model version
-vers <- 'models/11-baseline_mlgg6_matconstant4_bbin1_matage_allrec'
+vers <- 'models/15-baseline_mlgg6_bbin1_matconstant4'
 
 include_tagging <- FALSE
 
@@ -151,7 +151,7 @@ tmb_param <- attr(tmb_model, 'parameter_template')
 ## Fill in the parameter template
 tmb_param <- 
   tmb_param %>% 
-  g3_init_guess('\\.rec', 100, 80, 120, 1) %>% 
+  g3_init_guess('\\.rec', 10, 0.001, 20, 1) %>% 
   g3_init_guess('\\.init', 10, 0.001, 20, 1) %>% 
   g3_init_guess('recl', 22, 5, 30, 0) %>% 
   g3_init_guess('rec.sd', 6, 0, 20, 1) %>% 
@@ -167,8 +167,8 @@ tmb_param <-
   g3_init_guess('\\.M', 0.15, 0.001, 1, 0) %>%  
   g3_init_guess('prop_mat0', 0.5, 0.1, 0.9, 1) %>%
  # g3_init_guess('B0', 9725, 8000, 10000, 1) %>%
-  g3_init_guess('mat_alpha', 95, 10, 110, 0) %>% # g3_init_guess('mat1', 0, 10, 200, 1) %>% 
-  g3_init_guess('mat_l50', params_bio$mat.l50, 0.75*params_bio$mat.l50, 1.25*params_bio$mat.l50, 0) %>%  #mat.l50$l50, 0.001,1000,1) %>% #
+  g3_init_guess('mat_alpha', 95, 10, 110, 1) %>% # g3_init_guess('mat1', 0, 10, 200, 1) %>% 
+  g3_init_guess('mat_l50', params_bio$mat.l50, 0.75*params_bio$mat.l50, 1.25*params_bio$mat.l50, 1) %>%  #mat.l50$l50, 0.001,1000,1) %>% #
   g3_init_guess('mat_beta', 3.5, 0.1, 4, 0) %>% # g3_init_guess('mat1', 0, 10, 200, 1) %>% 
   g3_init_guess('mat_a50', 2, 1, 3, 0) %>%  #mat.l50$l50, 0.001,1000,1) %>% #
   g3_init_guess('walpha', params_bio$walpha, 1e-10, 1, 0) %>% 

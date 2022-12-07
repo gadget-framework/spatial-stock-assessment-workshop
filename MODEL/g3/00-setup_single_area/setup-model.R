@@ -112,8 +112,12 @@ init_vonb <- g3a_renewal_vonb(Linf = grow_par$Linf,
 ## -----------------------------------------------------------------------------
 
 maturity_init_data <- params_age[seq(1,29,by = 4),] %>% select(age, area, Mat)
-naturalmortality_data <- params_age %>% select(age, step, area, M)
 naturalmortality_init_data <- params_age[seq(1,29,by=4),] %>% select(age, area, M)
+mean_len_init_data <- params_age[seq(1,29,by=4),] %>% select(age, area, L)
+init_sd_init_data <- params_age[seq(1,29,by=4),] %>% select(age, area, sd)# %>% mutate(sd = 1)
+
+
+naturalmortality_data <- params_age %>% select(age, step, area, M)
 init_sd_data <- params_age %>% select(age, step, area ,sd)# %>% mutate(sd = 1)
 mean_len_data <- params_age %>% select(age, step, area, L)
 growth_data <- params_age %>% select(age, step, area, K = K_gadget)
@@ -139,8 +143,8 @@ initial_conditions_imm_short <-
                                                                                                          value_field = 'Mat'),
                                                                                 init = init_param,
                                                                                 M = mean(naturalmortality_data$M)),# g3_timeareadata('natmort', naturalmortality_data, value_field = 'M')),
-                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_data, value_field = 'L'),
-                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_data, value_field = 'sd'),
+                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_init_data, value_field = 'L'),
+                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_init_data, value_field = 'sd'),
                                       alpha_f = wl_par$walpha,
                                       beta_f = wl_par$wbeta)
   )
@@ -153,8 +157,8 @@ initial_conditions_mat_short <-
                                                                                                          value_field = 'Mat'),
                                                                                 init = init_param,
                                                                                 M = mean(naturalmortality_data$M)),# g3_timeareadata('stock_M', naturalmortality_data, value_field = 'M')),
-                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_data, value_field = 'L'),
-                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_data, value_field = 'sd'),
+                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_init_data, value_field = 'L'),
+                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_init_data, value_field = 'sd'),
                                       alpha_f = wl_par$walpha,
                                       beta_f = wl_par$wbeta)
   )
@@ -210,8 +214,8 @@ initial_conditions_imm <-
                                       # mean_f = g3a_renewal_vonb(Linf = grow_par$Linf, 
                                       #                           K = g3_timeareadata('KK', growth_data, value_field = 'K'),
                                       #                           recl = init_par$recl),# g3_timeareadata('stock_recl', recl_data, value_field = 'recl')),
-                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_data, value_field = 'L'),
-                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_data, value_field = 'sd'),
+                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_init_data, value_field = 'L'),
+                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_init_data, value_field = 'sd'),
                                       alpha_f = wl_par$walpha,
                                       beta_f = wl_par$wbeta)
     )
@@ -232,8 +236,8 @@ initial_conditions_mat <-
                                       # mean_f = g3a_renewal_vonb(Linf = grow_par$Linf,
                                       #                           K = g3_timeareadata('KK', growth_data, value_field = 'K'),
                                       #                           recl = init_par$recl),# g3_timeareadata('stock_recl', recl_data, value_field = 'recl')),
-                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_data, value_field = 'L'),
-                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_data, value_field = 'sd'),
+                                      mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_init_data, value_field = 'L'),
+                                      stddev_f = g3_timeareadata('stock_init_sd', init_sd_init_data, value_field = 'sd'),
                                       alpha_f = wl_par$walpha,
                                       beta_f = wl_par$wbeta)
   )
@@ -285,8 +289,8 @@ renewal_imm <-
                             # mean_f = g3a_renewal_vonb(Linf = grow_par$Linf, 
                             #                           K = g3_timeareadata('KK', growth_data, value_field = 'K'),
                             #                           recl = init_par$recl),# g3_timeareadata('stock_recl', recl_data, value_field = 'recl')),
-                            mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_data, value_field = 'L'),
-                            stddev_f = g3_timeareadata('stock_init_sd', init_sd_data, value_field = 'sd'),
+                            mean_f = gadget3::g3_timeareadata('stock_agelen', mean_len_init_data, value_field = 'L'),
+                            stddev_f = g3_timeareadata('stock_init_sd', init_sd_init_data, value_field = 'sd'),
                             alpha_f = wl_par$walpha,
                             beta_f = wl_par$wbeta,
                             run_f = gadget3:::f_substitute(~ age == minage &&
