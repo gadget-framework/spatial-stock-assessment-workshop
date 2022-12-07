@@ -87,8 +87,8 @@ grow_par <- list(Linf = g3_parameterized('Linf', by_stock = 'species'),
 ## Maturity
 mat_par <- list(mat_alpha = g3_parameterized('mat_alpha', by_stock = TRUE, scale = 0.001),
                 mat_l50 = g3_parameterized('mat_l50', by_stock = TRUE),
-                mat_alpha = g3_parameterized('mat_beta', by_stock = TRUE),
-                mat_l50 = g3_parameterized('mat_a50', by_stock = TRUE))
+                mat_beta = g3_parameterized('mat_beta', by_stock = TRUE),
+                mat_a50 = g3_parameterized('mat_a50', by_stock = TRUE))
 
 ## Renewal and initialisation
 init_par <- list(recl = g3_parameterized('recl', by_stock = 'species'),
