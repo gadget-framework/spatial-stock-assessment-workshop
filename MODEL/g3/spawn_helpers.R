@@ -9,13 +9,14 @@ g3a_bevholt_b0 <- function(h, R0, B0){
       B0 = B0)))
 }
 
-g3a_bevholt_casal <- function(R0, h, ysc){
+g3a_bevholt_casal <- function(R0, B0, h, ysc){
   
   list(
     s = ~sum(stock_ss(stock__wgt) * stock_ss(stock__spawningnum)),
-    r = gadget3:::f_substitute(~ R0 * ysc * ((s/R0) / (1L - (5L*h - 1L)/(4L * h) * (1 - s/R0))),
+    r = gadget3:::f_substitute(~ R0 * ysc * ((s/B0) / (1L - (5L*h - 1L)/(4L * h) * (1L - s/B0))),
       list(h = h,
            R0 = R0,
+           B0 = B0,
            ysc = ysc)))
   
 }

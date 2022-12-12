@@ -63,7 +63,8 @@ fleet_actions <-
                         catchability_f = g3a_predate_catchability_numberfleet(g3_timeareadata('pse_landings', pse_landings[[1]] %>%
                                                                                                 mutate(area = as.numeric(area),
                                                                                                        step = as.numeric(step),
-                                                                                                       year = as.numeric(year)), value_field = 'number'))),
+                                                                                                       year = as.numeric(year)), value_field = 'number')),
+                        run_f = ~cur_year > 1951),
     
     trol %>%
       g3a_predate_fleet(stocks,
@@ -83,7 +84,8 @@ fleet_actions <-
                         catchability_f = g3a_predate_catchability_numberfleet(g3_timeareadata('trol_landings', trol_landings[[1]] %>%
                                                                                                 mutate(area = as.numeric(area),
                                                                                                        step = as.numeric(step),
-                                                                                                       year = as.numeric(year)), value_field = 'number'))),
+                                                                                                       year = as.numeric(year)), value_field = 'number')),
+                        run_f = ~cur_year > 1951),
     bb %>%
       g3a_predate_fleet(stocks,
                         suitabilities = 
@@ -102,7 +104,8 @@ fleet_actions <-
                         catchability_f = g3a_predate_catchability_numberfleet(g3_timeareadata('bb_landings', bb_landings[[1]] %>%
                                                                                                 mutate(area = as.numeric(area),
                                                                                                        step = as.numeric(step),
-                                                                                                       year = as.numeric(year)), value_field = 'number'))),
+                                                                                                       year = as.numeric(year)), value_field = 'number')),
+                        run_f = ~cur_year > 1951),
     
     gil %>%
       g3a_predate_fleet(stocks,
@@ -122,7 +125,8 @@ fleet_actions <-
                         catchability_f = g3a_predate_catchability_numberfleet(g3_timeareadata('gil_landings', gil_landings[[1]] %>%
                                                                                                 mutate(area = as.numeric(area),
                                                                                                        step = as.numeric(step),
-                                                                                                       year = as.numeric(year)), value_field = 'number'))),
+                                                                                                       year = as.numeric(year)), value_field = 'number')),
+                        run_f = ~cur_year > 1951),
     
     lln %>%
       g3a_predate_fleet(stocks,
@@ -134,7 +138,8 @@ fleet_actions <-
                         catchability_f = g3a_predate_catchability_numberfleet(g3_timeareadata('lln_landings', lln_landings[[1]] %>%
                                                                                                 mutate(area = as.numeric(area),
                                                                                                        step = as.numeric(step),
-                                                                                                       year = as.numeric(year)), value_field = 'number'))),
+                                                                                                       year = as.numeric(year)), value_field = 'number')),
+                        run_f = ~cur_year > 1951),
     
     other %>%
       g3a_predate_fleet(stocks,
@@ -154,7 +159,8 @@ fleet_actions <-
                         catchability_f = g3a_predate_catchability_numberfleet(g3_timeareadata('other_landings', other_landings[[1]] %>%
                                                                                                 mutate(area = as.numeric(area),
                                                                                                        step = as.numeric(step),
-                                                                                                       year = as.numeric(year)), value_field = 'number'))),
+                                                                                                       year = as.numeric(year)), value_field = 'number')),
+                        run_f = ~cur_year > 1951),
     
     hln %>%
       g3a_predate_fleet(stocks,
@@ -174,36 +180,27 @@ fleet_actions <-
                         catchability_f = g3a_predate_catchability_numberfleet(g3_timeareadata('hln_landings', hln_landings[[1]] %>%
                                                                                                 mutate(area = as.numeric(area),
                                                                                                        step = as.numeric(step),
-                                                                                                       year = as.numeric(year)), value_field = 'number'))),
+                                                                                                       year = as.numeric(year)), value_field = 'number')),
+                        run_f = ~cur_year > 1951),
     list()
   )
 
 survey_actions <- 
   list(
     
-    ## Trying effort fleet here
+    ## Trying to mimic CPUE with effort fleet here
     survey %>% 
       g3a_predate_fleet(stocks,
                         suitabilities = 
                           stocks %>% 
                           set_names(.,map(.,'name')) %>% 
-                          map(function(x) g3_suitability_exponentiall50(g3_parameterized('survey.alpha', by_stock = 'species'),
-                                                                        g3_parameterized('survey.l50', by_stock = 'species'))),
+                          map(function(x) g3_suitability_exponentiall50(g3_parameterized('lln.alpha', by_stock = 'species', exponentiate = FALSE),
+                                                                        g3_parameterized('lln.l50', by_stock = 'species', exponentiate = FALSE))),
                         catchability_f = g3a_predate_catchability_effortfleet(
-                          catchability_fs = ~1e-06,
-                          E = ~sum(stock__wgt * stock__num)
-                        )),
+                          catchability_fs = g3_parameterized('catchability', optimise = TRUE),
+                          E = ~1e-9)
+                        ,
+                        run_f = ~cur_year > 1951),
     
-    # survey %>%
-    #   g3a_predate_fleet(stocks,
-    #                     suitabilities =
-    #                       stocks %>%
-    #                       set_names(.,map(.,'name')) %>%
-    #                       map(function(x) g3_suitability_exponentiall50(g3_parameterized('lln.alpha', by_stock = 'species'),
-    #                                                                     g3_parameterized('lln.l50', by_stock = 'species'))),
-    #                     catchability_f = g3a_predate_catchability_totalfleet(g3_timeareadata('survey_landings', survey_landings %>%
-    #                                                                                            mutate(area = as.numeric(area),
-    #                                                                                                   step = as.numeric(step),
-    #                                                                                                   year = as.numeric(year))))),
     list()
   )

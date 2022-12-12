@@ -14,13 +14,13 @@ library(tidyverse)
 library(gadgetutils)
 library(gadgetplots)
 
-source("~/gadget-framework/spatial-stock-assessment-workshop/MODEL/g3/spawn_helpers.R")
+source("~/WORK/gadget-framework/spatial-stock-assessment-workshop/MODEL/g3/spawn_helpers.R")
 
 ## Model directory
 base_dir <- 'MODEL/g3'
 
 ## Model version
-vers <- 'models/15-baseline_mlgg6_bbin1_matconstant4'
+vers <- 'models/200-baseline_SS_initrec1952'
 
 include_tagging <- FALSE
 
@@ -42,7 +42,7 @@ bootstrap <- FALSE
 ## -----------------------------------------------------------------------------
 
 ## This setup script uses the real years as opposed to pseudoyears
-year_range <- 1952:2015
+year_range <- 1940:2015
 species_name <- 'yft' 
 
 ## -----------------------------------------------------------------------------
@@ -93,7 +93,8 @@ if(read_data){
 ## Configure model actions ------------------------------------------------------------
 
 source(file.path(base_dir, '00-setup_single_area', 'setup-fleets_andersen2.R'))  # Generates fleet_actions
-#source(file.path(base_dir, '00-setup_single_area', 'setup-tagging.R'))  # Generates fleet_actions
+#source(file.path(base_dir, '00-setup_single_area', 'setup-fleets.R'))  # Generates fleet_actions
+if (include_tagging) source(file.path(base_dir, '00-setup_single_area', 'setup-tagging.R'))  # Generates fleet_actions
 #source(file.path(base_dir, '00-setup_single_area', 'setup-fleets.R'))  # Generates fleet_actions
 source(file.path(base_dir, '00-setup_single_area', 'setup-likelihood.R'))  # Generates likelihood_actions
 #source(file.path(base_dir, '00-setup_single_area', 'setup-likelihood_multi.R'))  # Generates likelihood_actions
@@ -102,30 +103,37 @@ source(file.path(base_dir, '00-setup_single_area', 'setup-likelihood.R'))  # Gen
 ##### Compile the r- and tmb-based models ######################################
 
 ## Collate the stock actions
-stock_actions <- c(initial_conditions_imm,
+stock_actions <- c(all_renewal,
+                   #initial_renewal,
+                   #initial_abun_imm,
+                   #initial_conditions_imm,
                    #initial_conditions_imm_short,
                    #initial_renewal,
                    natural_mortality_imm,
-                   renewal_imm,
+                   #renewal_imm,
                    #growmature_imm,
                    growmature_imm_constant,
                    #grow_imm,
                    #spawn_as_maturity,
                    ageing_imm,
                    list(),
-                   initial_conditions_mat,
+                   initial_renewal_mat,
+                   #initial_spawn_bevholt,
+                   #initial_abun_mat,
+                   #initial_conditions_mat,
                    #initial_renewal_mat,
                    #initial_conditions_mat_short,
                    natural_mortality_mat,
                    grow_mat,
-                   #spawn_bevholt_simple,
+                   #initial_spawn_bevholt,
+                   spawn_bevholt,
                    ageing_mat,
                    list())
 
 ## Collate model actions
 actions <- c(
   stock_actions,
-#  survey_actions,
+  survey_actions,
   fleet_actions,
   likelihood_actions,
   time_actions
@@ -137,7 +145,7 @@ if (include_tagging){
 
 ## It is possible to add reporting to the model, e.g.
 #actions <- c(actions, list(
-#  g3a_report_history(actions, '^yft_(imm|mat)__(num|wgt|igfs|lln|bmt|gil|foreign|suit_igfs|renewalnum|renewalwgt)$')))
+#  g3a_report_history(actions, '^yft_(imm|mat)__(num|wgt|igfs|lln|bmt|gil|foreign|suit_igfs|renewalnum|renewalwgt|spawnednum)$')))
 
 # Turn actions into an R function
 model <- g3_to_r(actions)#, strict = TRUE, trace = TRUE)
@@ -149,25 +157,26 @@ tmb_model <- g3_to_tmb(actions)
 tmb_param <- attr(tmb_model, 'parameter_template')
 
 ## Fill in the parameter template
+## Fill in the parameter template
 tmb_param <- 
   tmb_param %>% 
-  g3_init_guess('\\.rec', 10, 0.001, 20, 1) %>% 
-  g3_init_guess('\\.init', 10, 0.001, 20, 1) %>% 
+  g3_init_guess('\\.rec', 100, 0.001, 200, 1) %>% 
+  g3_init_guess('\\.init', 100, 0.001, 200, 1) %>% 
   g3_init_guess('recl', 22, 5, 30, 0) %>% 
   g3_init_guess('rec.sd', 6, 0, 20, 1) %>% 
-  g3_init_guess('rec.scalar', 1, 1, 100, 0) %>% 
+  g3_init_guess('rec.scalar', 1e2, 1e1, 1e3, 0) %>% 
   g3_init_guess('\\.rec.sigma', 0.2, -1, 1, 0) %>% 
   g3_init_guess('init.scalar', 1, 1, 10, 0) %>% 
   g3_init_guess('Linf', params_bio$Linf, params_bio$Linf*0.75, params_bio$Linf*1.25, 0) %>% 
   g3_init_guess('\\.K', 0.455, 0.001, 2, 1) %>% #params_bio$Kbase*1e3, params_bio$Kbase*1e3, params_bio$Kbase*1e3, 1) %>%
-  g3_init_guess('bbin', 0.1, 1e-08, 101, 0) %>% 
+  # g3_init_guess('bbin', 100, 1e-08, 101, 0) %>% 
   g3_init_guess('\\.alpha', 0.5, 0.005, 3, 1) %>% 
   g3_init_guess('l50', params_bio$mat.l50, 0.75*params_bio$mat.l50, 1.25*params_bio$mat.l50, 1) %>% 
   g3_init_guess('init.F', 0, 0, 1, 0) %>% 
   g3_init_guess('\\.M', 0.15, 0.001, 1, 0) %>%  
   g3_init_guess('prop_mat0', 0.5, 0.1, 0.9, 1) %>%
- # g3_init_guess('B0', 9725, 8000, 10000, 1) %>%
-  g3_init_guess('mat_alpha', 95, 10, 110, 1) %>% # g3_init_guess('mat1', 0, 10, 200, 1) %>% 
+  # g3_init_guess('B0', 9725, 8000, 10000, 1) %>%
+  g3_init_guess('mat_alpha', 30, 10, 110, 1) %>% # g3_init_guess('mat1', 0, 10, 200, 1) %>% 
   g3_init_guess('mat_l50', params_bio$mat.l50, 0.75*params_bio$mat.l50, 1.25*params_bio$mat.l50, 1) %>%  #mat.l50$l50, 0.001,1000,1) %>% #
   g3_init_guess('mat_beta', 3.5, 0.1, 4, 0) %>% # g3_init_guess('mat1', 0, 10, 200, 1) %>% 
   g3_init_guess('mat_a50', 2, 1, 3, 0) %>%  #mat.l50$l50, 0.001,1000,1) %>% #
@@ -176,36 +185,51 @@ tmb_param <-
   g3_init_guess('ander.p0$', 0, -1, 1, 0) %>%
   g3_init_guess('ander.p2$', 1, 0, 1,0) %>% 
   g3_init_guess('ander.p5$', max(g3_stock_def(mat_stock, 'minlen')), 10, 200, 0) %>% 
-  g3_init_guess('\\.p1', 0.5, 0.000001, 1, 1) %>% 
-  g3_init_guess('\\.p3', 50, 0.01, 100, 1) %>% 
-  g3_init_guess('\\.p4', 50, 0.01, 100, 1) %>% 
+  g3_init_guess('\\.p1', 1, 0.000001, 2, 1) %>% 
+  g3_init_guess('\\.p3', 1, 0.000001, 2, 1) %>% 
+  g3_init_guess('\\.p4', 1, 0.000001, 2, 1) %>% 
   g3_init_guess('\\.Lmode$', 
                 max(g3_stock_def(mat_stock, 'minlen'))/2, 
                 max(g3_stock_def(mat_stock, 'minlen'))/2.5, 
                 max(g3_stock_def(mat_stock, 'minlen'))/1.5, 1) %>% 
-#  g3_init_guess('bh_mu', 2, 0, 100, 1) %>% ## Maximum recruitment R0
-#  g3_init_guess('bh_lambda', 2, 0, 100, 1) %>% 
+  #  g3_init_guess('bh_mu', 2, 0, 100, 1) %>% ## Maximum recruitment R0
+  #  g3_init_guess('bh_lambda', 2, 0, 100, 1) %>% 
   g3_init_guess('srr_h', 0.8, 0, 1, 0) %>% 
-  g3_init_guess('R0', params_bio$R0/10e3, (params_bio$R0/10e3)*0.25, (params_bio$R0/10e3)*1.25, 0) %>% 
-  g3_init_guess('B0', 2430345539/10e3, 2430345539/10e3, 2430345539/10e3, 0) %>% 
-  g3_init_guess('Lambda', 5000000/10e3, (5000000/10e3)*0.9, (5000000/10e3)*1.1, 1) %>% 
-  #g3_init_guess('R0', 22102, 22102, 22102, 0) %>% 
-  g3_init_guess('catchability', 0.5,0,1,1)
-  
+  g3_init_guess('R0', params_bio$R0, params_bio$R0*0.75, params_bio$R0*1.25, 0) %>% 
+  g3_init_guess('B0', 5796853718, 5796853718*0.9, 5796853718*1.1, 0) %>% 
+ # g3_init_guess('B0', 5825897473, 5825897473*0.9, 5825897473*1.1, 0) %>% 
+#  g3_init_guess('Lambda', 5000000/10e3, (5000000/10e3)*0.9, (5000000/10e3)*1.1, 1) %>% 
+  g3_init_guess('catchability', 10,0.001,1e3,1)
+
 ## --------------------------------------------------------------------------
+
+## R0 to zero when not spawning
+#tmb_param$value[paste('R0', c(min(year_range):1951,1972:2015), sep='.')] <- 0L
+tmb_param$value[paste('R0', c(min(year_range):2015), sep='.')] <- 0L
+
+## Init rec to R0 prior to 1951
+tmb_param$value[paste('yft.rec', rep(min(year_range):1951, each=4), rep(1:4, length(min(year_range):1951)), sep='.')] <- params_bio$R0/10000/1e2
+tmb_param[match(paste('yft.rec', rep(min(year_range):1951, each=4), rep(1:4, length(min(year_range):1951)), sep='.'), tmb_param$switch), 'optimise'] <- FALSE
+
+#tmb_param$value[paste('yft.rec', rep(1952:1971, each=4), rep(1:4, length(1952:1971)), sep='.')] <- 0L
+#tmb_param[match(paste('yft.rec', rep(1952:1971, each=4), rep(1:4, length(1952:1971)), sep='.'), tmb_param$switch), 'optimise'] <- FALSE
+
+
+
 
 ## Run the R-model
 result <- model(tmb_param$value)
 print(result[[1]])
 # 
-test <- g3_fit(tmb_model, tmb_param)
+#test <- g3_fit(tmb_model, tmb_param)
+#test$stock.full %>% mutate(t = number*mean_weight) %>% group_by(year, step, stock) %>% summarise(t = sum(t))  %>% mutate(t = t/1000000)
 # 
 # plot(test)
 # 
-tmp <- attributes(result)
+#tmp <- attributes(result)
+#(tmp$hist_yft_mat__num* tmp$hist_yft_mat__wgt) %>% as.data.frame.table() %>% group_by(time) %>% summarise(t = sum(Freq)) %>% view
 
-
-
+#tmp$hist_yft_imm__renewalnum %>% as.data.frame.table() %>% group_by(time) %>% summarise(s = sum(Freq)) %>% view()
 # # 
 #  (tmp$yft_imm__num) %>% as.data.frame.table() %>% group_by(age) %>% summarise(biomass  = sum(Freq)) %>% mutate(stock = 'imm') %>% bind_rows(
 #    (tmp$yft_mat__num) %>% as.data.frame.table() %>% group_by(age) %>% summarise(biomass = sum(Freq)) %>% mutate(stock = 'mat')) -> qq
@@ -229,6 +253,16 @@ tmp <- attributes(result)
 #qq <- tmp$hist_yft_imm__num %>% as.data.frame.table() %>% group_by(time) %>% summarise(f = sum(Freq))
 #ww <- tmp$hist_yft_mat__num %>% as.data.frame.table() %>% group_by(time) %>% summarise(f = sum(Freq))
 
+# (tmp$hist_yft_mat__num*tmp$hist_yft_mat__wgt) %>% 
+#   as.data.frame.table() %>% 
+#   separate(time, into = c('year', 'step')) %>% 
+#   filter(year > 1945) %>% 
+#   mutate(time = as.numeric(year) + (as.numeric(step)-1)/4) -> qq
+# 
+# qq %>% group_by(time) %>% summarise(ssb = sum(Freq)) %>% ggplot(aes(time, ssb)) + geom_line()
+
+
+
 #print(qq$f + ww$f)
 
 # List all available reports
@@ -239,6 +273,7 @@ save(tmb_param, file = file.path(base_dir, vers, 'tmb_param.Rdata'))
 save(tmb_model, file = file.path(base_dir, vers, 'tmb_model.Rdata'))
 
 ## -----------------------------------------------------------------------------
+
 
 #if (!run_iterative){
   
@@ -251,10 +286,9 @@ save(tmb_model, file = file.path(base_dir, vers, 'tmb_model.Rdata'))
                          print_status = TRUE)
   
 
-source("~/gadget-framework/spatial-stock-assessment-workshop/MODEL/g3/g3_fit2.R")
+source("~/WORK/gadget-framework/spatial-stock-assessment-workshop/MODEL/g3/g3_fit2.R")
 
   fit <- g3_fit2(tmb_model, params_opt)
-  
   ## Write to file
   write.g3.param(params_opt, file.path(base_dir, vers, 'OPT'), 'params.final.optim')
   save(params_opt, file = file.path(base_dir, vers, 'OPT', 'params_opt.Rdata'))

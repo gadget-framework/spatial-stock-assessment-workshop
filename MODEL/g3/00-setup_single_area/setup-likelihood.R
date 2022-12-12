@@ -78,18 +78,27 @@ likelihood_actions <- list(
   #   (cpue1[[1]]),
   #   fleets = list(survey),
   #   stocks = stocks,
-  #   g3l_distribution_surveyindices_log(beta = 1),
+  #   g3l_distribution_surveyindices_log(alpha = 1, beta = 1),
   #   nll_breakdown = nll_breakdown,
   #   report = lik_report),
   
-  g3l_abundancedistribution(
+  g3l_catchdistribution(
     'cpue1',
     (cpue1[[1]]),
-    fleets = list(),
+    fleets = list(survey),
     stocks = stocks,
     g3l_distribution_surveyindices_log(beta = 1),
     nll_breakdown = nll_breakdown,
     report = lik_report),
+  
+  # g3l_abundancedistribution(
+  #   'cpue1',
+  #   (cpue1[[1]]),
+  #   fleets = list(),
+  #   stocks = stocks,
+  #   g3l_distribution_surveyindices_log(beta = 1),
+  #   nll_breakdown = nll_breakdown,
+  #   report = lik_report),
   
   list()
 )
