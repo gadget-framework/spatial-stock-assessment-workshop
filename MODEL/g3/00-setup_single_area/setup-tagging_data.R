@@ -1,3 +1,10 @@
+## -----------------------------------------------------------------------------
+##
+## Load the tagging data
+##
+## -----------------------------------------------------------------------------
+
+## Not in MFDB yet...
 load(file = '../Spatial-Assessment-Modeling-Workshop-MASTER/data/YFT_SRD_1A_4.RData')
 
 ## Lookup table for time, month is the mid-point of each quarter.. see data$surveytiming
@@ -18,7 +25,8 @@ tagrel <-
 
 attributes(tagrel)$area <- defaults$area
 attributes(tagrel)$step <- defaults$timestep
-attributes(tagrel)$year <- attr(trol_landings$`0.0.0`, 'year')
+attributes(tagrel)$year <- setNames(lapply(unique(tagrel$year), function(x) x),
+                                    lapply(unique(tagrel$year), function(x) x))
 
 
 ## Recaptures
@@ -35,6 +43,13 @@ tagrecap <-
   mutate(area = 1) %>% 
   select(year, step, area, recaps) %>% 
   rename(number = recaps)
+
+
+attributes(tagrecap)$area <- defaults$area
+attributes(tagrecap)$step <- defaults$timestep
+attributes(tagrecap)$year <- setNames(lapply(unique(tagrecap$year), function(x) x),
+                                    lapply(unique(tagrecap$year), function(x) x))
+
   
 
 
